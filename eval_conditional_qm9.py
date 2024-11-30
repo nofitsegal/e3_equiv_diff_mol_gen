@@ -1,4 +1,6 @@
 import argparse
+import numpy as np
+import os
 from os.path import join
 import torch
 import pickle
@@ -173,15 +175,29 @@ def main_quantitative(args):
     #    print("Loss numnodes classifier on EDM generated samples: %.4f" % loss)
 
 
-def save_and_sample_conditional(args, device, model, prop_dist, dataset_info, epoch=0, id_from=0):
-    one_hot, charges, x, node_mask = sample_sweep_conditional(args, device, model, dataset_info, prop_dist)
+def save_and_sample_conditional(args, sampling_type, threshold_type, threshold, device, model, prop_dist, dataset_info, epoch=0, id_from=0):
+    one_hot, charges, x, node_mask, context = sample_sweep_conditional(args, sampling_type, threshold_type, threshold, device, model, dataset_info, prop_dist)
+
+    # output_dir = os.path.join("outputs", args.exp_name, "analysis", f"cond_run{epoch}")
+    output_dir = 'outputs/%s/analysis/cond_run%s/' % (args.exp_name, epoch)
+    # Ensure the directory does not overwrite existing ones
+    suffix = 0
+    original_output_dir = output_dir
+    while os.path.exists(output_dir):
+        suffix += 1
+        output_dir = f"{original_output_dir[:-2]}{suffix}/"
 
     vis.save_xyz_file(
-        'outputs/%s/analysis/run%s/' % (args.exp_name, epoch), one_hot, charges, x, dataset_info,
+        output_dir, one_hot, charges, x, dataset_info,
         id_from, name='conditional', node_mask=node_mask)
 
-    vis.visualize_chain("outputs/%s/analysis/run%s/" % (args.exp_name, epoch), dataset_info,
+    vis.visualize_chain(output_dir, dataset_info,
                         wandb=None, mode='conditional', spheres_3d=True)
+
+    context_filepath = join(output_dir, "context.npy")
+    np.save(context_filepath, context.detach().cpu().numpy())
+    context_filepath = join(output_dir, "context.txt")
+    np.savetxt(context_filepath, context.detach().cpu().numpy(), fmt="%.6e")
 
     return one_hot, charges, x
 
@@ -196,7 +212,7 @@ def main_qualitative(args):
 
     for i in range(args.n_sweeps):
         print("Sampling sweep %d/%d" % (i+1, args.n_sweeps))
-        save_and_sample_conditional(args_gen, device, model, prop_dist, dataset_info, epoch=i, id_from=0)
+        save_and_sample_conditional(args_gen, args.sampling_type, args.threshold_type, args.threshold, device, model, prop_dist, dataset_info, epoch=i, id_from=0)
 
 
 if __name__ == "__main__":
@@ -220,10 +236,13 @@ if __name__ == "__main__":
                         help='naive, edm, qm9_second_half, qualitative')
     parser.add_argument('--n_sweeps', type=int, default=10,
                         help='number of sweeps for the qualitative conditional experiment')
+    parser.add_argument('--threshold_type', choices=['abs_val', 'percentage', None])
+    parser.add_argument('--threshold', type=float, default=None, help='Threshold value for conditional generation')
+    parser.add_argument('--sampling_type', choices=['interpolation', 'extrapolation'])
 
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
-    device = torch.device("cuda" if args.cuda else "cpu")
+    device = torch.device("cuda:1" if args.cuda else "cpu")
     args.device = device
 
     if args.task == 'qualitative':

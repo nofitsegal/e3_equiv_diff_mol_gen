@@ -6,8 +6,8 @@ This repository is a fork of the original implementation of [E(3) Equivariant Di
 
 In this fork, we've introduced additional features for conditional molecule generation:
 
-Users can now specify target property values for controlled molecule generation.
-The model supports extrapolation, allowing users to explore molecules specifically generated to match property values outside the training range
+* Users can now specify target property values for controlled molecule generation.
+* The model supports extrapolation, allowing users to explore molecules specifically generated to match property values outside the training range
 
 ### Training the EDM:
 

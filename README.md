@@ -4,7 +4,7 @@
 
 This repository is a fork of the original implementation of [E(3) Equivariant Diffusion for Molecule Generation](https://github.com/ehoogeboom/e3_diffusion_for_molecules/tree/main). The approach, as introduced in the [original paper](https://arxiv.org/abs/2203.17003), extends diffusion models to 3D molecular structures while preserving E(3) equivariance.
 
-In this fork, we've introduced additional features for conditional molecule generation and property extrapolation:
+In this fork, we've introduced additional features for conditional molecule generation:
 
 Users can now specify target property values for controlled molecule generation.
 The model supports extrapolation, allowing users to explore molecules specifically generated to match property values outside the training range

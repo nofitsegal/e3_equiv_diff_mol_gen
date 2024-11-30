@@ -167,11 +167,6 @@ def sample_sweep_conditional(args, sampling_type, threshold_type, threshold, dev
             if threshold_type == 'abs_val':
                 threshold_value = threshold
             elif threshold_type == 'percentage':
-                # # threshold is the top x% of samples from the uniform distribution
-                # probs = prop_dist.distributions[key][n_nodes]['probs']
-                # samples = torch.arange(len(probs.probs)) * (max_val - min_val) / len(probs.probs) + min_val
-                # threshold_index = int(threshold * len(samples))
-                # threshold_value = samples[-threshold_index].item()
                 threshold_value = max_val * (1 - threshold)
             else: # no threshold, sample from the whole distribution 
                 threshold_value = min_val

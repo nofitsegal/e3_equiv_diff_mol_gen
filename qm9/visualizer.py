@@ -27,7 +27,7 @@ def save_xyz_file(path, one_hot, charges, positions, dataset_info, id_from=0, na
         atomsxmol = [one_hot.size(1)] * one_hot.size(0)
 
     for batch_i in range(one_hot.size(0)):
-        f = open(path + name + '_' + "%03d.txt" % (batch_i + id_from), "w")
+        f = open(path + name + '_' + "%03d.xyz" % (batch_i + id_from), "w") # NOTE changed to xyz file
         f.write("%d\n\n" % atomsxmol[batch_i])
         atoms = torch.argmax(one_hot[batch_i], dim=1)
         n_atoms = int(atomsxmol[batch_i])
@@ -56,7 +56,7 @@ def load_molecule_xyz(file, dataset_info):
 
 
 def load_xyz_files(path, shuffle=True):
-    files = glob.glob(path + "/*.txt")
+    files = glob.glob(path + "/*.xyz")
     if shuffle:
         random.shuffle(files)
     return files

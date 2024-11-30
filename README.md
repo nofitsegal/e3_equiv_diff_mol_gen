@@ -1,6 +1,6 @@
 # EDM: E(3) Equivariant Diffusion Model for Molecule Generation in 3D.
 
-<img src="equivariant_diffusion/overview.png" width="400">
+<img src="equivariant_diffusion/gif_mol_gen.gif" width="400">
 
 Official code release for the paper Equivariant Diffusion for Molecule Generation in 3D.
 

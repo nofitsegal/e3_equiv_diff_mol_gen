@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import torch
 import torch.nn.functional as F
 from equivariant_diffusion.utils import assert_mean_zero_with_mask, remove_mean_with_mask,\
@@ -131,6 +132,7 @@ def sample(args, device, generative_model, dataset_info,
     if args.context_node_nf > 0:
         if context is None:
             context = prop_dist.sample_batch(nodesxsample)
+        print('using context in sampling')
         context = context.unsqueeze(1).repeat(1, max_n_nodes, 1).to(device) * node_mask
     else:
         context = None
@@ -154,18 +156,46 @@ def sample(args, device, generative_model, dataset_info,
     return one_hot, charges, x, node_mask
 
 
-def sample_sweep_conditional(args, device, generative_model, dataset_info, prop_dist, n_nodes=19, n_frames=100):
+def sample_sweep_conditional(args, sampling_type, threshold_type, threshold, device, generative_model, dataset_info, prop_dist, n_nodes=19, n_frames=100):
     nodesxsample = torch.tensor([n_nodes] * n_frames)
-
     context = []
     for key in prop_dist.distributions:
         min_val, max_val = prop_dist.distributions[key][n_nodes]['params']
         mean, mad = prop_dist.normalizer[key]['mean'], prop_dist.normalizer[key]['mad']
-        min_val = (min_val - mean) / (mad)
-        max_val = (max_val - mean) / (mad)
-        context_row = torch.tensor(np.linspace(min_val, max_val, n_frames)).unsqueeze(1)
+
+        if sampling_type == 'interpolation':
+            if threshold_type == 'abs_val':
+                threshold_value = threshold
+            elif threshold_type == 'percentage':
+                # # threshold is the top x% of samples from the uniform distribution
+                # probs = prop_dist.distributions[key][n_nodes]['probs']
+                # samples = torch.arange(len(probs.probs)) * (max_val - min_val) / len(probs.probs) + min_val
+                # threshold_index = int(threshold * len(samples))
+                # threshold_value = samples[-threshold_index].item()
+                threshold_value = max_val * (1 - threshold)
+            else: # no threshold, sample from the whole distribution 
+                threshold_value = min_val
+
+            # Normalize the threshold and max values
+            threshold_val = (threshold_value - mean) / mad
+            max_val = (max_val - mean) / mad
+
+            context_row = torch.tensor(np.linspace(threshold_val, max_val, n_frames)).unsqueeze(1) 
+
+        elif sampling_type == 'extrapolation':
+            if threshold_type == 'abs_val':
+                extrapolated_max_value = threshold
+            elif threshold_type == 'percentage':
+                extrapolated_max_value = max_val * (1 + threshold)
+
+            # Normalize the threshold and max values
+            extrapolated_max_val = (extrapolated_max_value - mean) / mad
+            max_val = (max_val - mean) / mad
+            
+            context_row = torch.tensor(np.linspace(max_val, extrapolated_max_val, n_frames)).unsqueeze(1)
+
         context.append(context_row)
     context = torch.cat(context, dim=1).float().to(device)
 
     one_hot, charges, x, node_mask = sample(args, device, generative_model, dataset_info, prop_dist, nodesxsample=nodesxsample, context=context, fix_noise=True)
-    return one_hot, charges, x, node_mask
+    return one_hot, charges, x, node_mask, context
